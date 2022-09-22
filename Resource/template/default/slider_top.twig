@@ -1,0 +1,21 @@
+{% if SilderImages is not empty  %}
+    <script>
+        $(function() {
+            $('.ec-sliderRole').html($('#slider-template').html())
+            $('.main_visual').slick({
+                dots: true,
+                arrows: false,
+                autoplay: true,
+                speed: 300
+            });
+        });
+    </script>
+
+    <template id="slider-template">
+        <div class="main_visual">
+            {% for SilderImage in SilderImages %}
+                <div class="item slick-slide"><img src="{{ asset(SilderImage.getFileName, 'save_image') }}"></div>
+            {% endfor %}
+        </div>
+    </template>
+{% endif %}

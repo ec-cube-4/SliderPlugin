@@ -1,0 +1,292 @@
+
+{% extends '@admin/default_frame.twig' %}
+
+{% set menus = ['content', 'plugin_slider'] %}
+
+{% block title %}{{ 'plugin_slider.admin.slider_management'|trans }}{% endblock %}
+{% block sub_title %}{{ 'plugin_slider.admin.slider_regist'|trans }}{% endblock %}
+
+{% form_theme form '@admin/Form/bootstrap_4_horizontal_layout.html.twig' %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" href="{{ asset('assets/css/fileupload/jquery.fileupload.css', 'admin') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/fileupload/jquery.fileupload-ui.css', 'admin') }}">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <style>
+        #thumb div {
+            float: left;
+            margin: 4px
+        }
+
+        .ui-state-highlight {
+            height: 70px;
+            width: 70px;
+            border: dashed 1px #ccc;
+            background: #fff;
+        }
+    </style>
+{% endblock stylesheet %}
+
+{% block javascript %}
+    <script src="{{ asset('assets/js/vendor/fileupload/vendor/jquery.ui.widget.js', 'admin') }}"></script>
+    <script src="{{ asset('assets/js/vendor/fileupload/jquery.iframe-transport.js', 'admin') }}"></script>
+    <script src="{{ asset('assets/js/vendor/fileupload/jquery.fileupload.js', 'admin') }}"></script>
+    <script src="{{ asset('assets/js/vendor/fileupload/jquery.fileupload-process.js', 'admin') }}"></script>
+    <script src="{{ asset('assets/js/vendor/fileupload/jquery.fileupload-validate.js', 'admin') }}"></script>
+    <script>var bootstrapTooltip = $.fn.tooltip.noConflict();</script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script>
+        $.fn.tooltip = bootstrapTooltip;
+        $(document).on('drop dragover', function(e) {
+            e.preventDefault();
+        });
+        $(function() {
+            // Todo: fix drag&drop style
+            $("#thumb").sortable({
+                cursor: 'move',
+                opacity: 0.7,
+                placeholder: 'ui-state-highlight',
+                update: function(event, ui) {
+                    updateSortNo();
+                }
+            });
+            var proto_img = '<div class="c-form__fileUploadThumbnail" style="background-image:url(\'__path__\');">' +
+                '<a class="delete-image"><i class="fa fa-times" aria-hidden="true"></i></a>' +
+                '</div>';
+            var proto_add = '{{ form_widget(form.add_images.vars.prototype) }}';
+            var proto_del = '{{ form_widget(form.delete_images.vars.prototype) }}';
+            {% for image in form.images %}
+                var $img = $(proto_img.replace(/__path__/g, '{{ asset(image.vars.value, 'save_image') }}'));
+                var $widget = $('{{ form_widget(image) }}');
+                $widget.val('{{ image.vars.value }}');
+                $("#thumb").append($img.append($widget));
+            {% endfor %}
+            {% for add_image in form.add_images %}
+                var $img = $(proto_img.replace(/__path__/g, '{{ asset(add_image.vars.value, 'temp_image') }}'));
+                var $widget = $('{{ form_widget(add_image) }}');
+                $widget.val('{{ add_image.vars.value }}');
+                $("#thumb").append($img.append($widget));
+            {% endfor %}
+            {% for delete_image in form.delete_images %}
+                $("#thumb").append('{{ form_widget(delete_image) }}');
+            {% endfor %}
+            var hideThumbnail = function() {
+                if ($("#thumb div").length > 0) {
+                    $("#icon_no_image").css("display", "none");
+                    $('#message').html("{{ 'admin.common.drag_and_drop_description'|trans }}");
+                } else {
+                    $("#icon_no_image").css("display", "");
+                    $('#message').empty();
+                }
+            };
+            // Todo: fix update sort by drag&drop
+            var updateSortNo = function() {
+                $("#thumb div").each(function(index) {
+                    $(this).find(".sort_no_images").remove();
+                    filename = $(this).find("input[type='hidden']").val();
+                    $sortNo = $('<input type="hidden" class="sort_no_images" name="sort_no_images[]" />');
+                    $sortNo.val(filename + '//' + parseInt(index + 1));
+                    $(this).append($sortNo);
+                });
+            };
+            hideThumbnail();
+            updateSortNo();
+            // Delete of images
+            var count_del = 0;
+            $("#thumb").on("click", '.delete-image', function() {
+                var $new_delete_image = $(proto_del.replace(/__name__/g, count_del));
+                var thumbnail = $(this).parents('div.c-form__fileUploadThumbnail');
+                var src = $(thumbnail).find('input').val();
+                $new_delete_image.val(src);
+                $("#thumb").append($new_delete_image);
+                $(thumbnail).remove();
+                hideThumbnail();
+                updateSortNo();
+                count_del++;
+            });
+            var count_add = {{ form.add_images|length|default(0) }};
+            $('#{{ form.slider_image.vars.id }}').fileupload({
+                url: "{{ url('plugin_slider_image_add') }}",
+                type: "post",
+                sequentialUploads: true,
+                dataType: 'json',
+                dropZone: $('#upload-zone'),
+                done: function(e, data) {
+                    $('.progress').hide();
+                    $.each(data.result.files, function(index, file) {
+                        var path = '{{ asset('', 'temp_image') }}' + file;
+                        var $img = $(proto_img.replace(/__path__/g, path));
+                        var $new_img = $(proto_add.replace(/__name__/g, count_add));
+                        $new_img.val(file);
+                        $child = $img.append($new_img);
+                        $('#thumb').append($child);
+                        count_add++;
+                    });
+                    hideThumbnail();
+                    updateSortNo();
+                },
+                fail: function(e, data) {
+                    alert("{{ 'admin.common.upload_error'|trans }}");
+                },
+                always: function(e, data) {
+                    $('.progress').hide();
+                    $('.progress .progress-bar').width('0%');
+                },
+                start: function(e, data) {
+                    $('.progress').show();
+                },
+                acceptFileTypes: /(\.|\/)(gif|jpe?g|png)$/i,
+                maxFileSize: 10000000,
+                maxNumberOfFiles: 10,
+                progressall: function(e, data) {
+                    var progress = parseInt(data.loaded / data.total * 100, 10);
+                    $('.progress .progress-bar').css(
+                        'width',
+                        progress + '%'
+                    );
+                },
+                processalways: function(e, data) {
+                    if (data.files.error) {
+                        alert("{{ 'admin.common.upload_error'|trans }}");
+                    }
+                }
+            });
+            // 画像アップロード
+            $('#file_upload').on('click', function() {
+                $('#{{ form.slider_image.vars.id }}').click();
+            });
+
+
+            var confirmFormChange = function(form, target, modal) {
+                var returnLink = form.find('input[type="hidden"][name*="return_link"]'),
+                    saveBtn = modal.find('a[data-action="save"]'),
+                    cancelBtn = modal.find('a[data-action="cancel"]');
+                modal.on('hidden.bs.modal', function() {
+                    returnLink.val('');
+                });
+                saveBtn.on('click', function() {
+                    returnLink.val($(this).data('return-link'));
+                    $(this).addClass('disabled');
+                    form.submit();
+                });
+                target.on('click', function() {
+                    modal.find('.modal-body .screen-name').text($(this).attr('title'));
+                    modal.modal('show');
+                    saveBtn.data('return-link', $(this).attr('href'));
+                    cancelBtn.attr('href', $(this).attr('href'));
+                    return false;
+                });
+            };
+            confirmFormChange($('#form1'), $('a[data-action="confirm"]'), $('#confirmFormChangeModal'))
+        });
+
+    </script>
+{% endblock javascript %}
+
+
+{% block main %}
+   <!-- 移動確認モーダル-->
+    <div class="modal fade" id="confirmFormChangeModal" tabindex="-1" role="dialog"
+         aria-labelledby="confirmFormChangeModal" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ 'admin.common.move_to_confirm_title'|trans }}</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="screen-name"></p>
+                </div>
+                <div class="modal-footer">
+                    <a class="btn btn-ec-conversion" data-action="save" href="javascript:void(0)">
+                        {{ 'admin.common.move_to_confirm_save_and_move'|trans }}
+                    </a>
+                    <a class="btn btn-ec-sub" data-action="cancel" href="javascript:void(0)">
+                        {{ 'admin.common.move_to_confirm_move_only'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <form role="form" name="form1" id="form1" method="post" action="" novalidate enctype="multipart/form-data">
+        {{ form_widget(form._token) }}
+        {{ form_widget(form.return_link) }}
+
+        <div class="c-contentsArea__cols">
+            <div class="c-contentsArea__primaryCol">
+                <div class="c-primaryCol">
+                    <div class="card rounded border-0 mb-4">
+                        <div class="card-header">
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="d-inline-block">
+                                    <span class="card-title">
+                                        {{ 'plugin_slider.admin.slider_image'|trans }}
+                                    </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="collapse show ec-cardCollapse">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-3">
+                                        <div class="d-inline-block" data-tooltip="true" data-placement="top" title="{{ 'tooltip.product.image'|trans }}">
+                                            <span>{{ 'plugin_slider.admin.slider_image'|trans }}</span>
+                                            <i class="fa fa-question-circle fa-lg ml-1"></i>
+                                            <br>{{ 'admin.product.image_size'|trans }}
+                                        </div>
+                                    </div>
+                                    <div class="col mb-2">
+                                        <div class="progress" style="display: none;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div id="thumb" class="c-form__fileUploadThumbnails clearfix"></div>
+                                        <p id="message"></p>
+                                        <div id="upload-zone" class="media py-5 border-ec-dashed mb-2 rounded">
+                                            <div class="media-body">
+                                                <i class="fa fa-cloud-upload fa-3x text-ec-lightGray mx-3 align-middle" aria-hidden="true"></i>
+                                                {{ 'admin.common.drag_and_drop_image_description'|trans }}
+                                                {{ form_widget(form.slider_image, { attr : { accept : 'image/*', style : 'display:none;' } }) }}
+                                                {{ form_errors(form.slider_image) }}
+                                                <a class="btn btn-ec-regular mr-2" onclick="$('#{{ form.slider_image.vars.id }}').click()">
+                                                    {{ 'admin.common.file_select'|trans }}
+                                                </a>
+                                            </div><!-- /.media-body -->
+                                        </div><!-- /.media -->
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% set backPath = (Parent is not empty) ? url('plugin_slider_category',  { parent_id : Parent.id }) : url('plugin_slider_list')  %}
+        <div class="c-conversionArea">
+            <div class="c-conversionArea__container">
+                <div class="row justify-content-between align-items-center">
+                    <div class="col-6">
+                        <div class="c-conversionArea__leftBlockItem">
+                            <a class="c-baseLink" href="{{ backPath }}"
+                               data-action="confirm" title="{{ 'admin.common.move_to_confirm_message'|trans({'%name%' : 'plugin_slider.admin.slider_management'|trans }) }}">
+                                <i class="fa fa-backward" aria-hidden="true"></i><span>{{ 'plugin_slider.admin.slider_management'|trans }}</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div id="ex-conversion-action" class="row align-items-center justify-content-end">
+                            <div class="col-auto">
+                                <button class="btn btn-ec-conversion px-5" type="submit">{{ 'admin.common.registration'|trans }}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}

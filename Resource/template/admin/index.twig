@@ -1,0 +1,216 @@
+
+{% extends '@admin/default_frame.twig' %}
+
+{% set menus = ['content', 'plugin_slider'] %}
+
+{% block title %}{{ 'plugin_slider.admin.slider_management'|trans }}{% endblock %}
+{% block sub_title %}{{ 'plugin_slider.admin.slider_list'|trans }}{% endblock %}
+
+
+{% block javascript %}
+    <script>
+        $(function() {
+            // 削除モーダルのhrefとmessageの変更
+            $('#DeleteModal').on('shown.bs.modal', function(event) {
+                var target = $(event.relatedTarget);
+                // hrefの変更
+                $(this).find('[data-method="delete"]').attr('href', target.data('url'));
+
+                // messageの変更
+                $(this).find('p.modal-message').text(target.data('message'));
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block stylesheet %}
+    {#TODO: Move to css file#}
+    <style>
+        .c-directoryTree ul > li > ul li:not(:last-of-type) > label:before,
+        .c-directoryTree ul > li > ul li:last-of-type > label:before {
+            margin-right: 1.6em;
+        }
+    </style>
+{% endblock %}
+
+{% block main %}
+    <div class="c-outsideBlock">
+        <div class="c-outsideBlock__contents mb-2">
+            <div class="row">
+                <div class="col-6">
+                    <nav aria-label="breadcrumb" role="navigation">
+                        <ol class="breadcrumb mb-2 p-0">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url('plugin_slider_list') }}">
+                                    {{ 'plugin_slider.admin.slider_top'|trans }}
+                                </a>
+                            </li>
+                            {% for ParentCategory in TargetCategory.path %}
+                                {% if ParentCategory.id is not null %}
+                                    <li class="breadcrumb-item active" aria-current="page">
+                                        <a href="{{ url('plugin_slider_category', { parent_id : ParentCategory.id }) }}">
+                                            {{ ParentCategory.name }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="c-contentsArea__cols">
+        <div class="c-contentsArea__primaryCol">
+            <div id="ex-primaryCol" class="c-primaryCol">
+                <div class="card rounded border-0 mb-4">
+                    <div class="card-body p-0">
+                        <div class="card rounded border-0">
+                            <ul class="list-group list-group-flush sortable-container">
+                                {% if TargetCategory.path|length == 1 %}
+                                    <li class="list-group-item">
+                                        <div class="row justify-content-around mode-view">
+                                            <div class="col-auto d-flex align-items-center"><strong>#</strong></div>
+                                            <div class="col d-flex align-items-center"><strong>{{ 'plugin_slider.admin.slider_top'|trans }}</strong></div>
+                                            <div class="col-auto text-right">
+                                                <a class="btn btn-ec-actionIcon mr-2 action-edit"
+                                                    href="{{ url('plugin_slider_top_edit') }}"
+                                                    data-tooltip="true" data-placement="top"
+                                                    title="{{ 'plugin_slider.admin.add_slider_image'|trans({ "%name%" : "Top" }) }}">
+                                                    <i class="fa fa-plus fa-lg text-secondary"></i>
+                                                </a>
+                                                <div class="d-inline-block mr-2" data-tooltip="true" data-placement="top"
+                                                        title="{{ 'admin.common.delete'|trans }}">
+                                                    <a class="btn btn-ec-actionIcon {% if silderTop <= 0 %} disabled{% endif %}"
+                                                        data-toggle="modal" data-target="#DeleteModal"
+                                                        data-url="{{ url('plugin_slider_delete') }}"
+                                                        data-message="{{ 'plugin_slider.delete_modal__message'|trans({ "%name%" : 'Top' }) }}">
+                                                        <i class="fa fa-close fa-lg text-secondary"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                {% endif %}
+                                {% if Categories|length > 0 %}
+                                    {% for Category in Categories %}
+                                        <li id="ex-category-{{ Category.id }}" class="list-group-item sortable-item" data-id="{{ Category.id }}" data-sort-no="{{ Category.sort_no }}">
+                                            {% if Category.id != TargetCategory.id %}
+                                                <div class="row justify-content-around mode-view">
+                                                    <div class="col-auto d-flex align-items-center">{{ Category.id }}</div>
+                                                    <div class="col d-flex align-items-center">
+                                                        {% if Category.Children|length > 0 or Category.hasProductCategories %}
+                                                            <a href="{{ url('plugin_slider_category',  { parent_id : Category.id }) }}">{{ Category.name }}</a>
+                                                        {% else %}
+                                                            {{ Category.name }}
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-auto text-right">
+                                                        <a class="btn btn-ec-actionIcon mr-2 action-edit"
+                                                           href="{{ url('plugin_slider_category_edit', {id: Category.id}) }}"
+                                                           data-tooltip="true" data-placement="top"
+                                                           title="{{ 'plugin_slider.admin.add_slider_image'|trans({ "%name%" : Category.name }) }}">
+                                                            <i class="fa fa-plus fa-lg text-secondary"></i>
+                                                        </a>
+                                                        <div class="d-inline-block mr-2" data-tooltip="true" data-placement="top"
+                                                             title="{{ 'admin.common.delete'|trans }}">
+                                                            <a class="btn btn-ec-actionIcon{% if Category.getSilderCategoryImages|length <= 0 %} disabled{% endif %}"
+                                                               data-toggle="modal" data-target="#DeleteModal"
+                                                               data-url="{{ url('plugin_slider_delete', {id: Category.id}) }}"
+                                                               data-message="{{ 'plugin_slider.delete_modal__message'|trans({ "%name%" : Category.name }) }}">
+                                                                <i class="fa fa-close fa-lg text-secondary"></i>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                            <!-- 削除モーダル -->
+                            <div class="modal fade" id="DeleteModal" tabindex="-1" role="dialog"
+                                 aria-labelledby="DeleteModal" aria-hidden="true">
+                                <div class="modal-dialog" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title font-weight-bold">
+                                                {{ 'admin.common.delete_modal__title'|trans }}
+                                            </h5>
+                                            <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">×</span>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body text-left">
+                                            <p class="text-left modal-message"><!-- jsでメッセージを挿入 --></p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-ec-sub" type="button" data-dismiss="modal">
+                                                {{ 'admin.common.cancel'|trans }}
+                                            </button>
+                                            <a class="btn btn-ec-delete" href="#" {{ csrf_token_for_anchor() }}
+                                               data-method="delete" data-confirm="false">
+                                                {{ 'admin.common.delete'|trans }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% macro tree(Category, TargetId, level, Ids) %}
+            {% import _self as selfMacro %}
+            {% set level = level + 1 %}
+            <li>
+                <label {% if (Category.children|length > 0) and (Category.id not in Ids) %}class="collapsed"
+                       {% endif %}data-toggle="collapse"
+                       href="#directory_category{{ Category.id }}"
+                       aria-expanded="{% if Category.id in Ids %}true{% endif %}"
+                       aria-controls="directory_category{{ Category.id }}"></label>
+                <span>
+                    {% if Category.Children|length > 0 or Category.hasProductCategories %}
+                        <a href="{{ url('plugin_slider_category', { parent_id : Category.id }) }}"{%if (Category.id == TargetId) %} class="font-weight-bold"{% endif %}>{{ Category.name }}
+                            ({{ Category.children|length }})
+                        </a>
+                    {% else %}
+                        {{ Category.name }}
+                    {% endif %}
+                </span>
+                {% if Category.children|length > 0 %}
+                    <ul class="collapse list-unstyled {% if Category.id in Ids %}show{% endif %}"
+                        id="directory_category{{ Category.id }}">
+                        {% for ChildCategory in Category.children %}
+                            {{ selfMacro.tree(ChildCategory, TargetId, level, Ids) }}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endmacro %}
+
+        <div class="c-contentsArea__secondaryCol">
+            <div id="ex-secondaryCol" class="c-secondaryCol">
+                <div class="card rounded border-0 mb-4">
+                    <div class="card-header">
+                        <span class="card-title">
+                            <a href="{{ url('plugin_slider_list') }}">{{ 'plugin_slider.admin.slider_top'|trans }}</a>
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="c-directoryTree mb-3">
+                            {% import _self as renderMacro %}
+                            {% for TopCategory in TopCategories %}
+                                <ul class="list-unstyled">
+                                    {{ renderMacro.tree(TopCategory, TargetCategory.Parent.id | default(null), 0, Ids) }}
+                                </ul>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
