@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\SliderPlugin4\Entity;
+namespace Plugin\SliderPlugin42\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -14,7 +14,7 @@ trait CategoryTrait
     /**
      * @var SilderCategoryImage[]|Collection
      *
-     * @ORM\OneToMany(targetEntity="Plugin\SliderPlugin4\Entity\SilderCategoryImage", mappedBy="Category", cascade={"persist", "remove"})
+     * @ORM\OneToMany(targetEntity="Plugin\SliderPlugin42\Entity\SilderCategoryImage", mappedBy="Category", cascade={"persist", "remove"})
      * @ORM\OrderBy({
      *     "sort_no"="ASC"
      * })

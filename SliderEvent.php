@@ -1,11 +1,11 @@
 <?php
 
-namespace Plugin\SliderPlugin4;
+namespace Plugin\SliderPlugin42;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Eccube\Event\TemplateEvent;
 use Eccube\Common\EccubeConfig;
-use Plugin\SliderPlugin4\Repository\SilderCategoryImageRepository;
+use Plugin\SliderPlugin42\Repository\SilderCategoryImageRepository;
 
 class SliderEvent implements EventSubscriberInterface
 {
@@ -55,7 +55,7 @@ class SliderEvent implements EventSubscriberInterface
     {
         $SilderImages = $this->silderCategoryImageRepository->findBy(['Category' => null], ['sort_no' => 'ASC']);
         $event->setParameter('SilderImages', $SilderImages);
-        $event->addSnippet('@SliderPlugin4/default/slider_top.twig');
+        $event->addSnippet('@SliderPlugin42/default/slider_top.twig');
     }
 
     /**

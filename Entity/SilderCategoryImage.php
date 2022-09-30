@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\SliderPlugin4\Entity;
+namespace Plugin\SliderPlugin42\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 
@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
  * Class SilderCategoryImage.
  *
  * @ORM\Table(name="plg_slider_category_image")
- * @ORM\Entity(repositoryClass="Plugin\SliderPlugin4\Repository\SilderCategoryImageRepository")
+ * @ORM\Entity(repositoryClass="Plugin\SliderPlugin42\Repository\SilderCategoryImageRepository")
  */
 class SilderCategoryImage
 {

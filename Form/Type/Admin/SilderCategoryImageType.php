@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\SliderPlugin4\Form\Type\Admin;
+namespace Plugin\SliderPlugin42\Form\Type\Admin;
 
 use Eccube\Common\EccubeConfig;
 use Symfony\Component\Form\AbstractType;
@@ -99,7 +99,7 @@ class SilderCategoryImageType extends AbstractType
                 return strpos($filePath, $topDirPath) === 0 && $filePath !== $topDirPath;
             });
             if (!$fileInDir) {
-                $form->getRoot()['slider_image']->addError(new FormError(trans('admin.product.image__invalid_path')));
+                $form->getRoot()['slider_image']->addError(new FormError(trans('plugin_slider.image__invalid_path')));
             }
         }
     }
@@ -116,6 +116,6 @@ class SilderCategoryImageType extends AbstractType
      */
     public function getBlockPrefix()
     {
-        return 'admin_product';
+        return 'plugin_slider';
     }
 }

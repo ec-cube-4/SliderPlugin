@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\SliderPlugin4\Controller\Admin;
+namespace Plugin\SliderPlugin42\Controller\Admin;
 
 use Eccube\Controller\AbstractController;
 use Eccube\Repository\CategoryRepository;
-use Plugin\SliderPlugin4\Repository\SilderCategoryImageRepository;
+use Plugin\SliderPlugin42\Repository\SilderCategoryImageRepository;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
@@ -14,8 +14,9 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\File;
-use Plugin\SliderPlugin4\Form\Type\Admin\SilderCategoryImageType;
-use Plugin\SliderPlugin4\Entity\SilderCategoryImage;
+use Plugin\SliderPlugin42\Form\Type\Admin\SilderCategoryImageType;
+use Plugin\SliderPlugin42\Entity\SilderCategoryImage;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class SliderController
@@ -50,7 +51,7 @@ class SliderController extends AbstractController
     /**
      * @Route("/%eccube_admin_route%/slider/list", name="plugin_slider_list")
      * @Route("/%eccube_admin_route%/slider/category/{parent_id}", requirements={"parent_id" = "\d+"}, name="plugin_slider_category")
-     * @Template("@SliderPlugin4/admin/index.twig")
+     * @Template("@SliderPlugin42/admin/index.twig")
      */
     public function index(Request $request, $parent_id = null, $id = null)
     {
@@ -106,7 +107,7 @@ class SliderController extends AbstractController
     /**
      * @Route("/%eccube_admin_route%/slider/top_edit", name="plugin_slider_top_edit")
      * @Route("/%eccube_admin_route%/slider/category_edit/{id}", requirements={"id" = "\d+"}, name="plugin_slider_category_edit")
-     * @Template("@SliderPlugin4/admin/regist.twig")
+     * @Template("@SliderPlugin42/admin/register.twig")
      */
     public function edit(Request $request, $id = null, CacheUtil $cacheUtil)
     {
@@ -181,24 +182,23 @@ class SliderController extends AbstractController
                     }
                 }
 
-                $this->entityManager->flush();
-
-                $sortNos = $request->get('sort_no_images');
-                if ($sortNos) {
-                    foreach ($sortNos as $sortNo) {
-                        list($filename, $sortNo_val) = explode('//', $sortNo);
+                if (array_key_exists('slider_image', $request->get('plugin_slider'))) {
+                    $slider_image = $request->get('plugin_slider')['slider_image'];
+                    foreach ($slider_image as $sortNo => $filename) {
                         $SilderCategoryImage = $this->silderCategoryImageRepository
                             ->findOneBy([
-                                'file_name' => $filename,
+                                'file_name' => pathinfo($filename, PATHINFO_BASENAME),
                                 'Category' => $Category,
                             ]);
-                        $SilderCategoryImage->setSortNo($sortNo_val);
-                        $this->entityManager->persist($SilderCategoryImage);
+                        if ($SilderCategoryImage !== null) {
+                            $SilderCategoryImage->setSortNo($sortNo);
+                            $this->entityManager->persist($SilderCategoryImage);
+                        }
                     }
+                    
                 }
+                
                 $this->entityManager->flush();
-
-
                 $this->addSuccess('admin.common.save_complete', 'admin');
 
                 if ($form->get('return_link')->getData()) {
@@ -276,23 +276,26 @@ class SliderController extends AbstractController
         }
     }
 
+
     /**
-     * @Route("/%eccube_admin_route%/slider/image/add", name="plugin_slider_image_add", methods={"POST"})
+     * 
+     * @see https://pqina.nl/filepond/docs/api/server/#process
+     * @Route("/%eccube_admin_route%/slider/image/process", name="plugin_slider_image_process", methods={"POST"})
      */
-    public function addImage(Request $request)
+    public function imageProcess(Request $request)
     {
-        if (!$request->isXmlHttpRequest()) {
+        if (!$request->isXmlHttpRequest() && $this->isTokenValid()) {
             throw new BadRequestHttpException();
         }
 
-        $images = $request->files->get('admin_product');
+        $images = $request->files->get('plugin_slider');
 
         $allowExtensions = ['gif', 'jpg', 'jpeg', 'png'];
         $files = [];
         if (count($images) > 0) {
             foreach ($images as $img) {
                 foreach ($img as $image) {
-                    //ファイルフォーマット検証
+                    // ファイルフォーマット検証
                     $mimeType = $image->getMimeType();
                     if (0 !== strpos($mimeType, 'image')) {
                         throw new UnsupportedMediaTypeHttpException();
@@ -311,7 +314,64 @@ class SliderController extends AbstractController
             }
         }
 
-        return $this->json(['files' => $files], 200);
+        return new Response(array_shift($files));
+    }
+
+
+    /**
+     * アップロード画像を取得する際にコールされるメソッド.
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#load
+     * @Route("/%eccube_admin_route%/product/product/image/load", name="plugin_slider_image_load", methods={"GET"})
+     */
+    public function imageLoad(Request $request)
+    {
+        if (!$request->isXmlHttpRequest()) {
+            throw new BadRequestHttpException();
+        }
+
+        $dirs = [
+            $this->eccubeConfig['eccube_save_image_dir'],
+            $this->eccubeConfig['eccube_temp_image_dir'],
+        ];
+
+        foreach ($dirs as $dir) {
+            if (strpos($request->query->get('source'), '..') !== false) {
+                throw new NotFoundHttpException();
+            }
+            $image = \realpath($dir.'/'.$request->query->get('source'));
+            $dir = \realpath($dir);
+
+            if (\is_file($image) && \str_starts_with($image, $dir)) {
+                $file = new \SplFileObject($image);
+
+                return $this->file($file, $file->getBasename());
+            }
+        }
+
+        throw new NotFoundHttpException();
+    }
+
+    /**
+     *
+     * @see https://pqina.nl/filepond/docs/api/server/#revert
+     * @Route("/%eccube_admin_route%/product/product/image/revert", name="plugin_slider_image_revert", methods={"DELETE"})
+     */
+    public function imageRevert(Request $request)
+    {
+        if (!$request->isXmlHttpRequest() && $this->isTokenValid()) {
+            throw new BadRequestHttpException();
+        }
+
+        $tempFile = $this->eccubeConfig['eccube_temp_image_dir'].'/'.$request->getContent();
+        if (is_file($tempFile) && stripos(realpath($tempFile), $this->eccubeConfig['eccube_temp_image_dir']) === false) {
+            $fs = new Filesystem();
+            $fs->remove($tempFile);
+
+            return new Response(null, Response::HTTP_NO_CONTENT);
+        }
+
+        throw new NotFoundHttpException();
     }
 
 }

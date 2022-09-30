@@ -1,4 +1,4 @@
-{% if SilderImages is not empty  %}
+{% if SilderImages is defined and SilderImages is not empty  %}
     <script>
         $(function() {
             $('.ec-sliderRole').html($('#slider-template').html())

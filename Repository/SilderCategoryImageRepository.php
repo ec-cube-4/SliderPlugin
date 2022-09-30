@@ -1,10 +1,10 @@
 <?php
 
-namespace Plugin\SliderPlugin4\Repository;
+namespace Plugin\SliderPlugin42\Repository;
 
 use Eccube\Repository\AbstractRepository;
-use Plugin\SliderPlugin4\Entity\SilderCategoryImage;
-use Doctrine\Common\Persistence\ManagerRegistry;
+use Plugin\SliderPlugin42\Entity\SilderCategoryImage;
+use Doctrine\Persistence\ManagerRegistry;
 
 /**
  * SilderCategoryImageRepository.

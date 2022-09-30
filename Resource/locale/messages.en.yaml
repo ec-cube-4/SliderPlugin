@@ -6,3 +6,5 @@ plugin_slider.admin.slider_top: Slider Top
 plugin_slider.delete_modal__message: This action cannot be undone afterwards. Are you sure you want to delete the 「%name%」 silder?
 plugin_slider.admin.slider_image: Slider Image
 plugin_slider.admin.add_slider_image: Add Slider for %name%
+
+plugin_slider.image__invalid_path: Invalid image path.

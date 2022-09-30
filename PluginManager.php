@@ -1,6 +1,6 @@
 <?php
 
-namespace Plugin\SliderPlugin4;
+namespace Plugin\SliderPlugin42;
 
 use Eccube\Application;
 use Eccube\Entity\Block;
