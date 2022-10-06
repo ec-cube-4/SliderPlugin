@@ -227,6 +227,7 @@ class SliderController extends AbstractController
     }
 
     /**
+     * @Route("/%eccube_admin_route%/slider/delete", name="plugin_slider_top_delete", methods={"DELETE"})
      * @Route("/%eccube_admin_route%/slider/delete/{id}", requirements={"id" = "\d+"}, name="plugin_slider_delete", methods={"DELETE"})
      */
     public function delete($id = null, CacheUtil $cacheUtil)

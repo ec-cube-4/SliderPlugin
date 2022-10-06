@@ -82,7 +82,7 @@
                                             </a>
                                             <div class="d-inline-block me-2" data-bs-toggle="tooltip" data-bs-placement="top">
                                                 <a class="btn btn-ec-actionIcon {% if silderTop <= 0 %} disabled{% endif %}" data-bs-toggle="modal" data-bs-target="#DeleteModal" 
-                                                    data-url="{{ url('plugin_slider_delete') }}" 
+                                                    data-url="{{ url('plugin_slider_top_delete') }}" 
                                                     data-message="{{ 'plugin_slider.delete_modal__message'|trans({ "%name%" : 'Top' }) }}">
                                                     <i class="fa fa-close fa-lg text-secondary"></i>
                                                 </a>
@@ -106,7 +106,7 @@
                                                     <div class="col-auto text-end">
                                                         <a class="btn btn-ec-actionIcon me-2 action-edit"
                                                            href="{{ url('plugin_slider_category_edit', {id: Category.id}) }}"
-                                                           data-bs-toggle="tooltip" data-bs-placement="top"
+                                                           data-bs-toggle="tZooltip" data-bs-placement="top"
                                                            title="{{ 'admin.common.edit'|trans }}">
                                                             <i class="fa fa-plus fa-lg text-secondary"></i>
                                                         </a>
